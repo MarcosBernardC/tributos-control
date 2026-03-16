@@ -1,47 +1,48 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from supabase import create_client, Client
 import os
 from dotenv import load_dotenv
 
-# Cargamos las variables del archivo .env
+# Importamos las funciones que ya creamos en logic.py
+from logic import registrar_cobro_alquiler, obtener_dashboard_madre
+
 load_dotenv()
 
 app = FastAPI()
 
 # --- CONFIGURACIÓN DE CORS ---
-# Esto es vital para que tu HTML/JS pueda hablar con este backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Luego lo limitaremos a tu dominio de GitHub Pages
+    allow_origins=["*"], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- CONEXIÓN A SUPABASE ---
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+# --- RUTAS ---
 
 @app.get("/")
 def home():
     return {
         "status": "Backend Online",
         "proyecto": "tributos-control",
-        "conexion_supabase": "Exitosa" if url else "Faltan credenciales"
+        "objetivo": "Gestión de alquileres y tributos para mamá"
     }
 
-# Un endpoint de prueba para ver si Supabase responde
-@app.get("/test-db")
-def test_db():
-    try:
-        # Intentamos listar las tablas (o una consulta simple)
-        return {"mensaje": "Conexión establecida con Supabase"}
-    except Exception as e:
-        return {"error": str(e)}
+# Endpoint para ver el resumen del mes
+@app.get("/dashboard/{mes}/{anio}")
+def leer_dashboard(mes: str, anio: int):
+    # Llamamos a la lógica que ya sabe hablar con Supabase
+    datos = obtener_dashboard_madre(mes, anio)
+    return {"data": datos}
+
+# Endpoint para registrar un pago (Cobrar renta y calcular tributo)
+@app.post("/cobrar")
+def cobrar(inquilino_id: int, mes: str, anio: int, monto: float):
+    # Esta función en logic.py hace toda la magia
+    resultado = registrar_cobro_alquiler(inquilino_id, mes, anio, monto)
+    return resultado
 
 if __name__ == "__main__":
     import uvicorn
-    # Usamos el puerto 8000 para local y Koyeb usará el que necesite
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
