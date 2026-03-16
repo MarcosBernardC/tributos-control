@@ -36,25 +36,67 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadData() {
-    showToast('Actualizando datos...', 'info');
+    showToast('Sincronizando con el servidor...', 'info');
+    
+    // Periodo predeterminado de consulta sugerido por el contexto inicial
+    const mesConsulta = "03";
+    const anioConsulta = 2026;
     
     try {
-        // En un entorno real, esto apuntaría a una API o se resolvería correctamente si servirmos con HTTP.
-        // Dado que puede ser un archivo estático local file:///, agregamos manejo de errores amigable.
-        const response = await fetch('../data/diccionarios.json');
+        const response = await fetch(`http://127.0.0.1:8000/dashboard/${mesConsulta}/${anioConsulta}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const data = await response.json();
-        renderDashboard(data);
-        showToast('Datos actualizados correctamente');
-    } catch (error) {
-        console.warn("No se pudo hacer fetch a ../data/diccionarios.json. Posible restricción de CORS por protocolo file://. Usando fallback de prueba.", error);
+        const apiResponse = await response.json();
+        const baseDatosInquilinos = apiResponse.data;
+
+        // Adaptamos la data nueva del backend al formato que necesita nuestras funciones render
+        const inquilinosAdaptados = baseDatosInquilinos.map((inq, idx) => {
+            // Verificar estado de pago en los arrays anidados (pagos_alquiler)
+            let estadoDePago = "pendiente";
+            if (inq.pagos_alquiler && inq.pagos_alquiler.length > 0) {
+                // Si existe al menos un pago registrado que indique pagado == true
+                const pagoRealizado = inq.pagos_alquiler.some(p => p.pagado);
+                if (pagoRealizado) estadoDePago = "pagado";
+            }
+            
+            return {
+                "id": idx + 1,
+                "nombre": inq.nombre,
+                "dni": "•••• Oculto", // El API ya no envía el DNI, ocultamos por seguridad
+                "departamento": inq.departamento,
+                "monto_alquiler": inq.monto_alquiler,
+                "mes_a_pagar": mesConsulta,
+                "estado_pago": estadoDePago
+            };
+        });
         
-        // Fallback data para que el dashboard siga funcionando de forma demostrativa
-        // si el usuario lo abre haciendo doble clic en index.html directamente.
+        // Consolidar la data
+        const datosConBackend = {
+          "propietario": {
+            "nombre": "Madre",
+            "ruc_dni": "XXXXXXXXXX1",
+            "ultimo_digito": 1
+          },
+          "cronograma_2026": {
+            "03": "2026-04-20", "04": "2026-05-19", "05": "2026-06-18", "06": "2026-07-16",
+            "07": "2026-08-19", "08": "2026-09-16", "09": "2026-10-19", "10": "2026-11-17",
+            "11": "2026-12-18", "12": "2027-01-19"
+          },
+          "inquilinos": inquilinosAdaptados,
+          "configuracion": {
+            "tasa_arrendamiento": 0.05
+          }
+        };
+
+        renderDashboard(datosConBackend);
+        showToast('Datos sincronizados con éxito', 'success');
+    } catch (error) {
+        console.warn("No se pudo hacer fetch al backend. Servidor apagado o CORS error. Usando fallback.", error);
+        
+        // Fallback data simulado si el backend de Python no se está ejecutando
         const fallbackData = {
           "propietario": {
             "nombre": "Madre",
@@ -62,61 +104,20 @@ async function loadData() {
             "ultimo_digito": 1
           },
           "cronograma_2026": {
-            "03": "2026-04-20",
-            "04": "2026-05-19",
-            "05": "2026-06-18",
-            "06": "2026-07-16",
-            "07": "2026-08-19",
-            "08": "2026-09-16",
-            "09": "2026-10-19",
-            "10": "2026-11-17",
-            "11": "2026-12-18",
-            "12": "2027-01-19"
+            "03": "2026-04-20", "04": "2026-05-19", "05": "2026-06-18", "06": "2026-07-16",
+            "07": "2026-08-19", "08": "2026-09-16", "09": "2026-10-19", "10": "2026-11-17",
+            "11": "2026-12-18", "12": "2027-01-19"
           },
           "inquilinos": [
-            {
-              "id": 1,
-              "nombre": "Inquilino 1",
-              "dni": "12345678",
-              "departamento": "101",
-              "monto_alquiler": 1200.00,
-              "mes_a_pagar": "03",
-              "estado_pago": "pendiente"
-            },
-            {
-              "id": 2,
-              "nombre": "Inquilino 2",
-              "dni": "87654321",
-              "departamento": "102",
-              "monto_alquiler": 850.00,
-              "mes_a_pagar": "03",
-              "estado_pago": "pagado"
-            },
-            {
-              "id": 3,
-              "nombre": "Inquilino 3",
-              "dni": "45678912",
-              "departamento": "201",
-              "monto_alquiler": 920.00,
-              "mes_a_pagar": "03",
-              "estado_pago": "pendiente"
-            },
-            {
-              "id": 4,
-              "nombre": "Inquilino 4",
-              "dni": "78912345",
-              "departamento": "202",
-              "monto_alquiler": 980.00,
-              "mes_a_pagar": "03",
-              "estado_pago": "pagado"
-            }
+            { "id": 1, "nombre": "Inquilino Falso 1", "dni": "---", "departamento": "101", "monto_alquiler": 1200.00, "mes_a_pagar": "03", "estado_pago": "pendiente" },
+            { "id": 2, "nombre": "Inquilino Falso 2", "dni": "---", "departamento": "102", "monto_alquiler": 700.00, "mes_a_pagar": "03", "estado_pago": "pagado" }
           ],
           "configuracion": {
             "tasa_arrendamiento": 0.05
           }
         };
         renderDashboard(fallbackData);
-        showToast('Mostrando datos de demostración (Error de conexión local)', 'error');
+        showToast('Mostrando datos base (Servidor API inactivo)', 'error');
     }
 }
 
