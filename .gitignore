@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Data sensible (Repo Privado)
+data/processed/
+# data/diccionarios.json  <-- Decide si quieres subir este o no
