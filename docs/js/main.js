@@ -1,9 +1,38 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Referencias a elementos
+    const loginForm = document.getElementById('login-form');
+    const passwordInput = document.getElementById('password');
+    const loginContainer = document.getElementById('login-container');
+    const dashboardContainer = document.getElementById('dashboard-container');
     const refreshBtn = document.getElementById('refresh-btn');
+    
+    // Configuración de contraseña quemada
+    const SECRET_PASSWORD = "1234";
+
+    // Eventos
     refreshBtn.addEventListener('click', loadData);
 
-    // Initial load
-    loadData();
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const userInput = passwordInput.value;
+        
+        if (userInput === SECRET_PASSWORD) {
+            // Login exitoso
+            loginContainer.classList.add('d-none');
+            dashboardContainer.classList.remove('d-none');
+            showToast('Acceso concedido', 'success');
+            
+            // Cargar datos reales
+            loadData();
+        } else {
+            // Error
+            showToast('Contraseña incorrecta', 'error');
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    });
+
+    // Initial load happens ONLY after successful login.
 });
 
 async function loadData() {
