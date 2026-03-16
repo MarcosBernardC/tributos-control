@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Tributos - SUNAT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="header-titles">
+                <h1>Control de Pagos a la SUNAT</h1>
+                <p>Concepto de Alquiler Predial - 1era Categoría</p>
+            </div>
+            <div class="header-actions">
+                <button id="refresh-btn" class="btn primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+                        <path d="M16 21v-5h5"></path>
+                    </svg>
+                    Actualizar Datos
+                </button>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- Owner and Config Info -->
+            <div class="info-column">
+                <section class="card summary-card fade-in">
+                    <div class="card-header">
+                        <h2>Datos del Propietario</h2>
+                        <div class="icon-wrapper bg-blue">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        </div>
+                    </div>
+                    <div class="card-body" id="propietario-info">
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text short"></div>
+                    </div>
+                </section>
+
+                <section class="card summary-card fade-in" style="animation-delay: 0.1s">
+                    <div class="card-header">
+                        <h2>Configuración Tributaria</h2>
+                        <div class="icon-wrapper bg-purple">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        </div>
+                    </div>
+                    <div class="card-body" id="config-info">
+                        <div class="skeleton-text"></div>
+                    </div>
+                </section>
+                
+                <section class="card summary-card fade-in" style="animation-delay: 0.2s">
+                    <div class="card-header">
+                        <h2>Resumen del Mes</h2>
+                        <div class="icon-wrapper bg-green">
+                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        </div>
+                    </div>
+                    <div class="card-body" id="resumen-info">
+                         <div class="skeleton-text"></div>
+                         <div class="skeleton-text short"></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Schedule column -->
+            <section class="card cronograma-card fade-in" style="animation-delay: 0.3s">
+                <div class="card-header">
+                    <h2>Cronograma de Vencimientos 2026</h2>
+                    <p class="subtitle">Fechas límite según último dígito del RUC</p>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-container">
+                        <table id="cronograma-table">
+                            <thead>
+                                <tr>
+                                    <th>Periodo Tributario</th>
+                                    <th>Fecha de Vencimiento</th>
+                                    <th>Estado Sugerido</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Generated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tenants grid -->
+            <section class="card inquilinos-card full-width fade-in" style="animation-delay: 0.4s">
+                <div class="card-header flex-between">
+                    <div>
+                        <h2>Gestión de Inquilinos y Departamentos</h2>
+                        <p class="subtitle">Estado actual de pagos del periodo en curso</p>
+                    </div>
+                    <div class="legend">
+                        <span class="badge pendiente">Pendiente</span>
+                        <span class="badge pagado">Pagado</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="inquilinos-grid" id="inquilinos-grid">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

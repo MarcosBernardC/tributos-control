@@ -1,0 +1,60 @@
+{
+  "propietario": {
+    "nombre": "Madre",
+    "ruc_dni": "XXXXXXXXXX1",
+    "ultimo_digito": 1
+  },
+  "cronograma_2026": {
+    "03": "2026-04-20",
+    "04": "2026-05-19",
+    "05": "2026-06-18",
+    "06": "2026-07-16",
+    "07": "2026-08-19",
+    "08": "2026-09-16",
+    "09": "2026-10-19",
+    "10": "2026-11-17",
+    "11": "2026-12-18",
+    "12": "2027-01-19"
+  },
+  "inquilinos": [
+    {
+      "id": 1,
+      "nombre": "Inquilino 1",
+      "dni": "12345678",
+      "departamento": "101",
+      "monto_alquiler": 1200.00,
+      "mes_a_pagar": "03",
+      "estado_pago": "pendiente"
+    },
+    {
+      "id": 2,
+      "nombre": "Inquilino 2",
+      "dni": "87654321",
+      "departamento": "102",
+      "monto_alquiler": 850.00,
+      "mes_a_pagar": "03",
+      "estado_pago": "pagado"
+    },
+    {
+      "id": 3,
+      "nombre": "Inquilino 3",
+      "dni": "45678912",
+      "departamento": "201",
+      "monto_alquiler": 920.00,
+      "mes_a_pagar": "03",
+      "estado_pago": "pendiente"
+    },
+    {
+      "id": 4,
+      "nombre": "Inquilino 4",
+      "dni": "78912345",
+      "departamento": "202",
+      "monto_alquiler": 980.00,
+      "mes_a_pagar": "03",
+      "estado_pago": "pagado"
+    }
+  ],
+  "configuracion": {
+    "tasa_arrendamiento": 0.05
+  }
+}
