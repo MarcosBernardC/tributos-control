@@ -5,12 +5,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginContainer = document.getElementById('login-container');
     const dashboardContainer = document.getElementById('dashboard-container');
     const refreshBtn = document.getElementById('refresh-btn');
+    const privacyBtn = document.getElementById('privacy-btn');
+    const privacyIcon = document.getElementById('privacy-icon');
     
-    // Configuración de contraseña quemada
+    // Configuración de estado global
     const SECRET_PASSWORD = "1234";
+    window.isPrivateMode = true; // Por defecto empezamos en modo privado
+    window.currentData = null; // Guardará la info actual para redibujar sin refetch
 
     // Eventos
     refreshBtn.addEventListener('click', loadData);
+    
+    privacyBtn.addEventListener('click', () => {
+        window.isPrivateMode = !window.isPrivateMode;
+        
+        // Actualizar el icono y texto del botón
+        if (window.isPrivateMode) {
+            privacyIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+            privacyBtn.querySelector('span').textContent = 'Modo Privado';
+            showToast('Modo de Privacidad: Activado', 'info');
+        } else {
+            privacyIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+            privacyBtn.querySelector('span').textContent = 'Modo Público';
+            showToast('Modo de Privacidad: Desactivado', 'info');
+        }
+        
+        // Redibujar la interfaz con los datos cacheados
+        if (window.currentData) {
+            renderDashboard(window.currentData);
+        }
+    });
 
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -50,7 +74,9 @@ async function loadData() {
         }
         
         const apiResponse = await response.json();
-        const baseDatosInquilinos = apiResponse.data;
+        // Ahora el backend nos devuelve inquilinos y propietario
+        const baseDatosInquilinos = apiResponse.data.inquilinos || [];
+        const baseDatosPropietario = apiResponse.data.propietario || null;
 
         // Adaptamos la data nueva del backend al formato que necesita nuestras funciones render
         const inquilinosAdaptados = baseDatosInquilinos.map((inq, idx) => {
@@ -65,7 +91,8 @@ async function loadData() {
             return {
                 "id": idx + 1,
                 "nombre": inq.nombre,
-                "dni": "•••• Oculto", // El API ya no envía el DNI, ocultamos por seguridad
+                // Si el backend envía el dni lo leemos, sino usamos una raya
+                "dni": inq.dni ? inq.dni : "---",
                 "departamento": inq.departamento,
                 "monto_alquiler": inq.monto_alquiler,
                 "mes_a_pagar": mesConsulta,
@@ -75,9 +102,13 @@ async function loadData() {
         
         // Consolidar la data
         const datosConBackend = {
-          "propietario": {
+          "propietario": baseDatosPropietario ? {
+            "nombre": baseDatosPropietario.nombre,
+            "ruc_dni": baseDatosPropietario.ruc_dni, 
+            "ultimo_digito": baseDatosPropietario.ultimo_digito
+          } : {
             "nombre": "Madre",
-            "ruc_dni": "XXXXXXXXXX1",
+            "ruc_dni": "10012345671", // Fallback interno si algo falla
             "ultimo_digito": 1
           },
           "cronograma_2026": {
@@ -91,6 +122,7 @@ async function loadData() {
           }
         };
 
+        window.currentData = datosConBackend;
         renderDashboard(datosConBackend);
         showToast('Datos sincronizados con éxito', 'success');
     } catch (error) {
@@ -100,7 +132,7 @@ async function loadData() {
         const fallbackData = {
           "propietario": {
             "nombre": "Madre",
-            "ruc_dni": "XXXXXXXXXX1",
+            "ruc_dni": "10012345671",
             "ultimo_digito": 1
           },
           "cronograma_2026": {
@@ -109,13 +141,15 @@ async function loadData() {
             "11": "2026-12-18", "12": "2027-01-19"
           },
           "inquilinos": [
-            { "id": 1, "nombre": "Inquilino Falso 1", "dni": "---", "departamento": "101", "monto_alquiler": 1200.00, "mes_a_pagar": "03", "estado_pago": "pendiente" },
-            { "id": 2, "nombre": "Inquilino Falso 2", "dni": "---", "departamento": "102", "monto_alquiler": 700.00, "mes_a_pagar": "03", "estado_pago": "pagado" }
+            { "id": 1, "nombre": "Inquilino Falso 1", "dni": "72635411", "departamento": "101", "monto_alquiler": 1200.00, "mes_a_pagar": "03", "estado_pago": "pendiente" },
+            { "id": 2, "nombre": "Inquilino Falso 2", "dni": "45129833", "departamento": "102", "monto_alquiler": 700.00, "mes_a_pagar": "03", "estado_pago": "pagado" }
           ],
           "configuracion": {
             "tasa_arrendamiento": 0.05
           }
         };
+        
+        window.currentData = fallbackData;
         renderDashboard(fallbackData);
         showToast('Mostrando datos base (Servidor API inactivo)', 'error');
     }
@@ -131,6 +165,14 @@ function renderDashboard(data) {
 
 function renderPropietario(propietario) {
     const container = document.getElementById('propietario-info');
+    
+    // Ocultar RUC si la privacidad está activada
+    let rucVisible = propietario.ruc_dni;
+    if (window.isPrivateMode && rucVisible && rucVisible.length > 1) {
+       // Mask all characters except the last one dynamically for any length of RUC/DNI
+       rucVisible = '•'.repeat(rucVisible.length - 1) + rucVisible.substring(rucVisible.length - 1);
+    }
+    
     container.innerHTML = `
         <div class="data-group">
             <div class="data-label">Nombre / Razón Social</div>
@@ -138,7 +180,7 @@ function renderPropietario(propietario) {
         </div>
         <div class="data-group">
             <div class="data-label">RUC / DNI</div>
-            <div class="data-value">${propietario.ruc_dni}</div>
+            <div class="data-value">${rucVisible}</div>
         </div>
         <div class="data-group">
             <div class="data-label">Último dígito para cronograma</div>
@@ -292,7 +334,7 @@ function renderInquilinos(inquilinos, tasa) {
             <div class="inquilino-details">
                 <div class="detail-row">
                     <span class="label">DNI:</span>
-                    <span class="value">${inq.dni}</span>
+                    <span class="value">${window.isPrivateMode ? '•••• Oculto' : inq.dni}</span>
                 </div>
                 <div class="detail-row">
                     <span class="label">Mes de Cargo:</span>

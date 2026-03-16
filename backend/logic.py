@@ -47,10 +47,16 @@ def obtener_dashboard_madre(mes: str, anio: int):
     Trae la lista de inquilinos con sus estados de pago de renta y tributo.
     """
     # Nota: Supabase permite hacer "select" de tablas relacionadas si están bien vinculadas en SQL
-    query = supabase.table("inquilinos").select(
-        "nombre, departamento, monto_alquiler, "
+    query_inquilinos = supabase.table("inquilinos").select(
+        "nombre, dni, departamento, monto_alquiler, "
         "pagos_alquiler(pagado, monto_pagado), "
         "pagos_tributos(estado_pago, monto_tributo)"
     ).eq("pagos_alquiler.mes_periodo", mes).eq("pagos_alquiler.anio_periodo", anio).execute()
     
-    return query.data
+    # Obtener los datos del propietario (asumimos id=1 para Madre)
+    query_propietario = supabase.table("propietarios").select("*").eq("id", 1).single().execute()
+    
+    return {
+        "inquilinos": query_inquilinos.data,
+        "propietario": query_propietario.data
+    }

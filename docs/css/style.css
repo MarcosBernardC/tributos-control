@@ -66,6 +66,10 @@ body {
     margin-top: 1rem;
 }
 
+.mr-2 {
+    margin-right: 0.5rem;
+}
+
 .justify-center {
     justify-content: center;
 }
@@ -144,7 +148,17 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-bottom: 2rem;
+    
+    /* Sticky Properties */
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background-color: var(--background);
+    padding-top: 2rem;
+    padding-bottom: 1rem;
+    margin-top: -2rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
 }
 
 .header-titles h1 {
@@ -287,6 +301,17 @@ body {
 
 .btn.primary:hover {
     background-color: var(--primary-hover);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn.secondary {
+    background-color: var(--surface);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+}
+
+.btn.secondary:hover {
+    background-color: var(--background);
     box-shadow: var(--shadow-sm);
 }
 
