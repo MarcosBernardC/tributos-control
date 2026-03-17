@@ -1,3 +1,4 @@
+const API_URL = "https://bloody-germana-bernardlab-dev-ec7f6b1c.koyeb.app";
 document.addEventListener('DOMContentLoaded', () => {
     // Referencias a elementos
     const loginForm = document.getElementById('login-form');
@@ -9,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const privacyIcon = document.getElementById('privacy-icon');
     
     // Configuración de estado global
-    const API_URL = "https://bloody-germana-bernardlab-dev-ec7f6b1c.koyeb.app";
     window.isPrivateMode = true; // Por defecto empezamos en modo privado
     window.currentData = null; // Guardará la info actual para redibujar sin refetch
 
