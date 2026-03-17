@@ -59,24 +59,41 @@ def registrar_cobro_alquiler(inquilino_id: int, mes: str, anio: int, monto_recib
 
 def obtener_dashboard_madre(mes: str, anio: int):
     """
-    Trae la lista de inquilinos con sus estados de pago de renta y tributo.
+    Trae la lista de TODOS los inquilinos y filtra sus estados de pago por mes/anio en Python.
     """
-    # Nota: Supabase permite hacer "select" de tablas relacionadas si están bien vinculadas en SQL
+    # 1. Traemos TODOS los inquilinos con sus relaciones (sin filtrar en la query para evitar inner joinimplícito)
     query_inquilinos = supabase.table("inquilinos").select(
         "nombre, dni, departamento, monto_alquiler, "
-        "pagos_alquiler(pagado, monto_pagado), "
-        "pagos_tributos(estado_pago, monto_tributo)"
-    ).eq("pagos_alquiler.mes_periodo", mes).eq("pagos_alquiler.anio_periodo", anio).execute()
+        "pagos_alquiler(mes_periodo, anio_periodo, pagado, monto_pagado), "
+        "pagos_tributos(mes_periodo, anio_periodo, estado_pago, monto_tributo)"
+    ).execute()
     
-    # Obtener los datos del propietario (asumimos id=1 para Madre)
+    inquilinos_data = query_inquilinos.data
+    
+    # 2. Filtrado manual en Python para el mes y año solicitados
+    for inq in inquilinos_data:
+        # Filtrar pagos_alquiler
+        if "pagos_alquiler" in inq and inq["pagos_alquiler"]:
+            inq["pagos_alquiler"] = [p for p in inq["pagos_alquiler"] 
+                                   if p["mes_periodo"] == mes and p["anio_periodo"] == anio]
+        
+        # Filtrar pagos_tributos
+        if "pagos_tributos" in inq and inq["pagos_tributos"]:
+            inq["pagos_tributos"] = [t for t in inq["pagos_tributos"] 
+                                   if t["mes_periodo"] == mes and t["anio_periodo"] == anio]
+
+    # 3. Obtener los datos del propietario (asumimos id=1 para Madre)
     query_propietario = supabase.table("propietarios").select("*").eq("id", 1).single().execute()
     propietario_data = query_propietario.data
     
-    # Obtener cronograma para el año y el dígito del propietario
-    query_cronograma = supabase.table("cronograma_sunat").select("*").eq("anio_periodo", anio).eq("ultimo_digito", propietario_data.get("ultimo_digito")).execute()
+    # 4. Obtener cronograma para el año y el dígito del propietario
+    query_cronograma = supabase.table("cronograma_sunat").select("*") \
+        .eq("anio_periodo", anio) \
+        .eq("ultimo_digito", propietario_data.get("ultimo_digito")) \
+        .execute()
     
     return {
-        "inquilinos": query_inquilinos.data,
+        "inquilinos": inquilinos_data,
         "propietario": propietario_data,
         "cronograma": query_cronograma.data
     }
