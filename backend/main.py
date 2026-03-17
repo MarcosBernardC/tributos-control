@@ -55,15 +55,17 @@ def home():
 # Endpoint para ver el resumen del mes
 @app.get("/dashboard/{mes}/{anio}")
 def leer_dashboard(mes: str, anio: int, token_data: dict = Depends(validar_token)):
-    # Llamamos a la lógica que ya sabe hablar con Supabase
-    datos = obtener_dashboard_madre(mes, anio)
+    ruc_usuario = token_data["sub"]
+    # Llamamos a la lógica enviando el RUC del token para filtrar por dueño
+    datos = obtener_dashboard_madre(mes, anio, ruc_usuario)
     return {"data": datos}
 
 # Endpoint para registrar un pago (Cobrar renta y calcular tributo)
 @app.post("/cobrar")
 def cobrar(inquilino_id: int, mes: str, anio: int, monto: float, token_data: dict = Depends(validar_token)):
-    # Esta función en logic.py hace toda la magia
-    resultado = registrar_cobro_alquiler(inquilino_id, mes, anio, monto)
+    ruc_usuario = token_data["sub"]
+    # Validamos propiedad y aplicamos tasa dinámica según el RUC del token
+    resultado = registrar_cobro_alquiler(inquilino_id, mes, anio, monto, ruc_usuario)
     return resultado
 
 class LoginRequest(BaseModel):

@@ -22,26 +22,39 @@ def crear_token_acceso(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def registrar_cobro_alquiler(inquilino_id: int, mes: str, anio: int, monto_recibido: float):
-    # 1. Primero obtenemos el monto pactado del maestro de inquilinos
-    inquilino = supabase.table("inquilinos").select("monto_alquiler").eq("id", inquilino_id).single().execute()
-    monto_pactado = float(inquilino.data['monto_alquiler'])
+def registrar_cobro_alquiler(inquilino_id: int, mes: str, anio: int, monto_recibido: float, ruc_usuario: str):
+    # 0. Obtenemos al propietario por RUC para validar propiedad y obtener su tasa
+    prop_query = supabase.table("propietarios").select("id, tasa_arrendamiento").eq("ruc_dni", ruc_usuario).single().execute()
+    propietario = prop_query.data
+    prop_id = propietario["id"]
+    tasa = float(propietario.get("tasa_arrendamiento", 0.05))
 
-    # 2. Registramos el pago de alquiler (podría ser parcial)
-    # Aquí es donde se ve la diferencia vs el pactado
-    alquiler = supabase.table("pagos_alquiler").upsert({
+    # 1. Obtenemos el monto pactado y validamos que el inquilino pertenezca al propietario
+    inquilino_query = supabase.table("inquilinos") \
+        .select("monto_alquiler, propietario_id") \
+        .eq("id", inquilino_id) \
+        .single().execute()
+    
+    inquilino = inquilino_query.data
+    if inquilino["propietario_id"] != prop_id:
+        return {"status": "error", "message": "No tiene permisos sobre este inquilino"}
+    
+    monto_pactado = float(inquilino['monto_alquiler'])
+
+    # 2. Registramos el pago de alquiler
+    supabase.table("pagos_alquiler").upsert({
         "inquilino_id": inquilino_id,
         "mes_periodo": mes,
         "anio_periodo": anio,
         "monto_pagado": monto_recibido,
-        "pagado": monto_recibido >= monto_pactado, # Solo es "True" si pagó todo
+        "pagado": monto_recibido >= monto_pactado,
         "fecha_pago": "now()"
     }).execute()
 
-    # 3. El tributo se calcula SIEMPRE sobre el monto pactado (lo legal ante SUNAT)
-    monto_tributo = monto_pactado * 0.05
+    # 3. El tributo se calcula sobre el pactado usando la tasa dinámica del propietario
+    monto_tributo = monto_pactado * tasa
 
-    tributo = supabase.table("pagos_tributos").upsert({
+    supabase.table("pagos_tributos").upsert({
         "inquilino_id": inquilino_id,
         "mes_periodo": mes,
         "anio_periodo": anio,
@@ -53,39 +66,39 @@ def registrar_cobro_alquiler(inquilino_id: int, mes: str, anio: int, monto_recib
         "status": "procesado",
         "monto_pactado": monto_pactado,
         "monto_recibido": monto_recibido,
-        "deuda_alquiler": monto_pactado - monto_recibido
+        "deuda_alquiler": monto_pactado - monto_recibido,
+        "tasa_aplicada": tasa
     }
 
-def obtener_dashboard_madre(mes: str, anio: int):
+def obtener_dashboard_madre(mes: str, anio: int, ruc_usuario: str):
     """
-    Trae la lista de TODOS los inquilinos y filtra sus estados de pago por mes/anio en Python.
+    Trae la lista de inquilinos filtrada por el propietario autenticado.
     """
-    # 1. Traemos TODOS los inquilinos con sus relaciones (sin filtrar en la query para evitar inner joinimplícito)
+    # 1. Obtenemos datos del propietario por su RUC
+    prop_query = supabase.table("propietarios").select("*").eq("ruc_dni", ruc_usuario).single().execute()
+    propietario_data = prop_query.data
+    prop_id = propietario_data["id"]
+
+    # 2. Traemos SOLO los inquilinos de este propietario
     query_inquilinos = supabase.table("inquilinos").select(
         "nombre, dni, departamento, monto_alquiler, "
         "pagos_alquiler(mes_periodo, anio_periodo, pagado, monto_pagado), "
         "pagos_tributos(mes_periodo, anio_periodo, estado_pago, monto_tributo)"
-    ).execute()
+    ).eq("propietario_id", prop_id).execute()
     
     inquilinos_data = query_inquilinos.data
     
-    # 2. Filtrado manual en Python para el mes y año solicitados
+    # 3. Filtrado manual de pagos en Python
     for inq in inquilinos_data:
-        # Filtrar pagos_alquiler
         if "pagos_alquiler" in inq and inq["pagos_alquiler"]:
             inq["pagos_alquiler"] = [p for p in inq["pagos_alquiler"] 
                                    if p["mes_periodo"] == mes and p["anio_periodo"] == anio]
         
-        # Filtrar pagos_tributos
         if "pagos_tributos" in inq and inq["pagos_tributos"]:
             inq["pagos_tributos"] = [t for t in inq["pagos_tributos"] 
                                    if t["mes_periodo"] == mes and t["anio_periodo"] == anio]
 
-    # 3. Obtener los datos del propietario (asumimos id=1 para Madre)
-    query_propietario = supabase.table("propietarios").select("*").eq("id", 1).single().execute()
-    propietario_data = query_propietario.data
-    
-    # 4. Obtener cronograma para el año y el dígito del propietario
+    # 4. Obtener cronograma para el dígito específico del propietario
     query_cronograma = supabase.table("cronograma_sunat").select("*") \
         .eq("anio_periodo", anio) \
         .eq("ultimo_digito", propietario_data.get("ultimo_digito")) \
