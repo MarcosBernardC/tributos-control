@@ -55,8 +55,13 @@ def obtener_dashboard_madre(mes: str, anio: int):
     
     # Obtener los datos del propietario (asumimos id=1 para Madre)
     query_propietario = supabase.table("propietarios").select("*").eq("id", 1).single().execute()
+    propietario_data = query_propietario.data
+    
+    # Obtener cronograma para el año y el dígito del propietario
+    query_cronograma = supabase.table("cronograma_sunat").select("*").eq("anio_periodo", anio).eq("ultimo_digito", propietario_data.get("ultimo_digito")).execute()
     
     return {
         "inquilinos": query_inquilinos.data,
-        "propietario": query_propietario.data
+        "propietario": propietario_data,
+        "cronograma": query_cronograma.data
     }

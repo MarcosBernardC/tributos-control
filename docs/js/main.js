@@ -74,9 +74,10 @@ async function loadData() {
         }
         
         const apiResponse = await response.json();
-        // Ahora el backend nos devuelve inquilinos y propietario
+        // Ahora el backend nos devuelve inquilinos, propietario y cronograma
         const baseDatosInquilinos = apiResponse.data.inquilinos || [];
         const baseDatosPropietario = apiResponse.data.propietario || null;
+        const baseDatosCronograma = apiResponse.data.cronograma || [];
 
         // Adaptamos la data nueva del backend al formato que necesita nuestras funciones render
         const inquilinosAdaptados = baseDatosInquilinos.map((inq, idx) => {
@@ -100,6 +101,17 @@ async function loadData() {
             };
         });
         
+        // Adaptar cronograma a objeto clave-valor (mes: fecha)
+        const cronogramaAdaptado = {};
+        if (baseDatosCronograma.length > 0) {
+            baseDatosCronograma.forEach(cro => {
+                cronogramaAdaptado[cro.mes_periodo] = cro.fecha_vencimiento;
+            });
+        } else {
+            // Fallback parcial de marzo si la BD está vacía (evita romper UI)
+            cronogramaAdaptado["03"] = "2026-04-20";
+        }
+
         // Consolidar la data
         const datosConBackend = {
           "propietario": baseDatosPropietario ? {
@@ -111,14 +123,10 @@ async function loadData() {
             "ruc_dni": "10012345671", // Fallback interno si algo falla
             "ultimo_digito": 1
           },
-          "cronograma_2026": {
-            "03": "2026-04-20", "04": "2026-05-19", "05": "2026-06-18", "06": "2026-07-16",
-            "07": "2026-08-19", "08": "2026-09-16", "09": "2026-10-19", "10": "2026-11-17",
-            "11": "2026-12-18", "12": "2027-01-19"
-          },
+          "cronograma_2026": cronogramaAdaptado,
           "inquilinos": inquilinosAdaptados,
           "configuracion": {
-            "tasa_arrendamiento": 0.05
+            "tasa_arrendamiento": baseDatosPropietario ? (baseDatosPropietario.tasa_arrendamiento || 0.05) : 0.05
           }
         };
 
@@ -174,17 +182,13 @@ function renderPropietario(propietario) {
     }
     
     container.innerHTML = `
-        <div class="data-group">
-            <div class="data-label">Nombre / Razón Social</div>
+        <div class="data-group mb-2">
+            <div class="data-label text-sm">Razón Social</div>
             <div class="data-value">${propietario.nombre}</div>
         </div>
-        <div class="data-group">
-            <div class="data-label">RUC / DNI</div>
-            <div class="data-value">${rucVisible}</div>
-        </div>
-        <div class="data-group">
-            <div class="data-label">Último dígito para cronograma</div>
-            <div class="data-value"><span class="badge pendiente">${propietario.ultimo_digito}</span></div>
+        <div class="data-group mb-0">
+            <div class="data-label text-sm">Identificación (RUC)</div>
+            <div class="data-value font-mono bg-light-gray px-2 py-1 inline-block rounded">${rucVisible}</div>
         </div>
     `;
 }
@@ -193,16 +197,19 @@ function renderConfiguracion(config) {
     const container = document.getElementById('config-info');
     const porcentaje = (config.tasa_arrendamiento * 100).toFixed(1) + '%';
     container.innerHTML = `
-        <div class="data-group">
-            <div class="data-label">Tasa de Impuesto (5%)</div>
-            <div class="highlight-value">${porcentaje}</div>
-            <div class="subtitle">Categoría: Primera Categoría - Alquileres</div>
+        <div class="data-group mb-2">
+            <div class="data-label text-sm">Tasa de Impuesto (1era Cat.)</div>
+            <div class="highlight-value text-xl">${porcentaje}</div>
+        </div>
+        <div class="data-group mb-0">
+            <div class="data-label text-sm">Estado General</div>
+            <span class="badge pagado text-xs">Vigente</span>
         </div>
     `;
 }
 
 function renderResumen(data) {
-    const container = document.getElementById('resumen-info');
+    const container = document.getElementById('kpi-container');
     
     // Calcular totales
     let totalIngresos = 0;
@@ -217,21 +224,39 @@ function renderResumen(data) {
 
     const formatoMoneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format;
 
+    // Generar KPI cards top row
     container.innerHTML = `
-        <div class="data-group">
-            <div class="data-label">Alquileres Totales Estimados</div>
-            <div class="data-value">${formatoMoneda(totalIngresos)}</div>
+        <div class="kpi-card">
+            <div class="kpi-icon bg-green">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <div class="kpi-info">
+                <h3>Ingresos Estimados</h3>
+                <div class="kpi-value text-green-600">${formatoMoneda(totalIngresos)}</div>
+            </div>
         </div>
-        <div class="data-group">
-            <div class="data-label">Impuesto a Declarar (Total)</div>
-            <div class="highlight-value">${formatoMoneda(totalImpuestos)}</div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon bg-blue">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div class="kpi-info">
+                <h3>Estado de Cobranza</h3>
+                <div class="kpi-value mt-1">
+                    <span class="${pendientes > 0 ? 'badge pendiente' : 'badge pagado'}">
+                        ${pendientes === 0 ? 'Al día 100%' : `${pendientes} pendiente(s)`}
+                    </span>
+                </div>
+            </div>
         </div>
-        <div class="data-group">
-            <div class="data-label">Estado de Cobranza</div>
-            <div class="data-value">
-                <span class="${pendientes > 0 ? 'vencimiento-proximo' : 'badge pagado'}">
-                    ${pendientes === 0 ? 'Todo pagado' : `${pendientes} pago(s) pendiente(s)`}
-                </span>
+
+        <div class="kpi-card">
+            <div class="kpi-icon bg-purple">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <div class="kpi-info">
+                <h3>Obligación a Declarar</h3>
+                <div class="kpi-value">${formatoMoneda(totalImpuestos)}</div>
             </div>
         </div>
     `;
