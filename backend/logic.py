@@ -1,6 +1,6 @@
 from supabase import create_client, Client
 import os
-import jwt
+from jose import jwt
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
