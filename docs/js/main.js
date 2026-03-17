@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const privacyIcon = document.getElementById('privacy-icon');
     
     // Configuración de estado global
-    const SECRET_PASSWORD = "1234";
+    const API_URL = "https://bloody-germana-bernardlab-dev-ec7f6b1c.koyeb.app";
     window.isPrivateMode = true; // Por defecto empezamos en modo privado
     window.currentData = null; // Guardará la info actual para redibujar sin refetch
 
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Enviamos el RUC correcto pre-configurado para que la madre no tenga que memorizarlo
             const rucPropietaria = "12345678901"; 
             
-            const response = await fetch('http://127.0.0.1:8000/login', {
+            const response = await fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -111,7 +111,7 @@ async function loadData() {
     const anioConsulta = 2026;
     
     try {
-        const response = await fetch(`http://127.0.0.1:8000/dashboard/${mesConsulta}/${anioConsulta}`);
+        const response = await fetch(`${API_URL}/dashboard/${mesConsulta}/${anioConsulta}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
