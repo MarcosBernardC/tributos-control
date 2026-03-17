@@ -14,7 +14,6 @@ supabase: Client = create_client(url, key)
 SECRET_KEY = os.environ.get("SECRET_KEY", "super-secret-key-para-desarrollo")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 24 horas
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123") # Fallback para desarrollo
 
 def crear_token_acceso(data: dict):
     to_encode = data.copy()
@@ -99,20 +98,20 @@ def obtener_dashboard_madre(mes: str, anio: int):
     }
 
 def verificar_login(ruc: str, password_ingresada: str):
-    # 1. Validación centralizada de la contraseña
-    if password_ingresada != ADMIN_PASSWORD:
-        return {"status": "error", "message": "Credenciales incorrectas"}
-
-    # 2. Si la contraseña es correcta, buscamos al propietario por RUC
+    # 1. Buscamos al propietario por RUC para obtener sus datos (incluida la contraseña)
     query = supabase.table("propietarios") \
-        .select("nombre", "ruc_dni") \
+        .select("nombre", "ruc_dni", "password") \
         .eq("ruc_dni", ruc) \
         .execute()
     
-    # query.data devolverá una lista vacía si no hay coincidencias
     if query.data and len(query.data) > 0:
         usuario = query.data[0]
-        # 3. Generamos el Token de Sesión
+        
+        # 2. Validación de la contraseña contra la base de datos
+        if usuario.get("password") != password_ingresada:
+            return {"status": "error", "message": "Credenciales incorrectas"}
+
+        # 3. Si es correcta, generamos el Token de Sesión
         token = crear_token_acceso({"sub": usuario["ruc_dni"], "nombre": usuario["nombre"]})
         return {
             "status": "success", 
