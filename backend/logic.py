@@ -65,3 +65,17 @@ def obtener_dashboard_madre(mes: str, anio: int):
         "propietario": propietario_data,
         "cronograma": query_cronograma.data
     }
+
+def verificar_login(ruc: str, password_ingresada: str):
+    # Buscamos al propietario por RUC y Password
+    query = supabase.table("propietarios") \
+        .select("nombre", "ruc_dni") \
+        .eq("ruc_dni", ruc) \
+        .eq("password", password_ingresada) \
+        .execute()
+    
+    # query.data devolverá una lista vacía si no hay coincidencias
+    if query.data and len(query.data) > 0:
+        return {"status": "success", "user": query.data[0]["nombre"]}
+    else:
+        return {"status": "error", "message": "Credenciales incorrectas"}

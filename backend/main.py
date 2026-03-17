@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
 
 # Importamos las funciones que ya creamos en logic.py
-from logic import registrar_cobro_alquiler, obtener_dashboard_madre
+from logic import registrar_cobro_alquiler, obtener_dashboard_madre, verificar_login
 
 load_dotenv()
 
@@ -41,6 +42,14 @@ def cobrar(inquilino_id: int, mes: str, anio: int, monto: float):
     # Esta función en logic.py hace toda la magia
     resultado = registrar_cobro_alquiler(inquilino_id, mes, anio, monto)
     return resultado
+
+class LoginRequest(BaseModel):
+    ruc: str
+    password: str
+
+@app.post("/login")
+def login(req: LoginRequest):
+    return verificar_login(req.ruc, req.password)
 
 if __name__ == "__main__":
     import uvicorn

@@ -36,23 +36,67 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    loginForm.addEventListener('submit', (e) => {
+    loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const userInput = passwordInput.value;
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
         
-        if (userInput === SECRET_PASSWORD) {
-            // Login exitoso
-            loginContainer.classList.add('d-none');
-            dashboardContainer.classList.remove('d-none');
-            showToast('Acceso concedido', 'success');
+        try {
+            submitBtn.textContent = "Verificando...";
+            submitBtn.disabled = true;
             
-            // Cargar datos reales
-            loadData();
-        } else {
-            // Error
-            showToast('Contraseña incorrecta', 'error');
-            passwordInput.value = '';
-            passwordInput.focus();
+            // Enviamos el RUC correcto pre-configurado para que la madre no tenga que memorizarlo
+            const rucPropietaria = "12345678901"; 
+            
+            const response = await fetch('http://127.0.0.1:8000/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ruc: rucPropietaria, password: userInput })
+            });
+
+            if (!response.ok) {
+                throw new Error("Error conectando con el servidor");
+            }
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                // Login exitoso
+                loginContainer.style.opacity = '0';
+                setTimeout(() => {
+                    loginContainer.classList.add('d-none');
+                    dashboardContainer.classList.remove('d-none');
+                    // Forzar redibujado
+                    dashboardContainer.getBoundingClientRect();
+                    document.body.style.backgroundColor = 'var(--background)';
+                    dashboardContainer.style.opacity = '1';
+                    
+                    showToast(`¡Bienvenida ${data.user}!`, 'success');
+                    
+                    // Cargar datos reales
+                    loadData();
+                }, 300);
+            } else {
+                // Error
+                showToast(data.message || 'Contraseña incorrecta', 'error');
+                
+                // Efecto visual de error
+                passwordInput.style.borderColor = 'var(--danger)';
+                setTimeout(() => {
+                    passwordInput.style.borderColor = '';
+                }, 1000);
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        } catch (error) {
+            console.error("Error en login:", error);
+            showToast("No se pudo conectar al servidor de autenticación.", "error");
+        } finally {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
         }
     });
 
